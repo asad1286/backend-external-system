@@ -104,27 +104,27 @@ cd frontend && npm run sync-endpoints
   calls myCRMSIM and refreshes the token when it expires.
 - The browser joins a call's audio room with only the room URL and its one-call token.
 
-## Deploy (Koyeb, free instance)
+## Deploy (Render, free web service)
 
 The `Dockerfile` builds the frontend and runs the backend, which serves it, so the whole
 system is one web service. Every page asks for a password (Basic auth); only the Callback
 URL (`/webhooks/mycrmsim`, signature-checked) and `/healthz` stay open. With
 `NODE_ENV=production` (set in the image) it refuses to start without `APP_PASSWORD`.
 
-1. Koyeb → Create Web Service → from this Git repo (builder: **Dockerfile**), or `koyeb deploy` from this folder.
-2. Instance **Free**, port **8000** (HTTP), health check `GET /healthz`.
-3. Environment (`<app>` = the Koyeb domain, e.g. `external-system-you.koyeb.app`):
+1. Push this folder to a (private) GitHub repo.
+2. Render → **New → Blueprint** → the repo. `render.yaml` creates a free Docker web service with `/healthz` as its health check.
+3. Fill the variables it asks for (`<app>` = the service's domain, e.g. `external-system-ab12.onrender.com`):
 
    | Variable | Value |
    |---|---|
-   | `APP_PASSWORD` | a long password (secret) |
-   | `APP_USER` | optional, default `admin` |
-   | `CLIENT_ID`, `CLIENT_SECRET` | the app's credentials (secrets) |
+   | `APP_PASSWORD` | a long password |
+   | `CLIENT_ID`, `CLIENT_SECRET` | the app's credentials |
    | `PUBLIC_URL`, `FRONTEND_URL` | `https://<app>` |
    | `REDIRECT_URI` | `https://<app>/oauth/callback` |
 
+   The domain is known only after the first deploy: set these three then and redeploy.
 4. In myCRMSIM, set the app's Redirect URI to `https://<app>/oauth/callback` and its Callback URL to `https://<app>/webhooks/mycrmsim`.
 
-The free instance sleeps when idle and its disk is not kept: after a restart or a new
-deploy, connect the app again (the tokens and the event log live in `backend/data/store.json`).
-
+The free service sleeps after 15 minutes without requests (the next one waits ~1 minute)
+and its disk is not kept: after a restart or a new deploy, connect the app again (the
+tokens and the event log live in `backend/data/store.json`).

@@ -1,0 +1,26 @@
+# Render Blueprint: New → Blueprint → this repo. One free Docker web service.
+# Fill the sync:false values in the dashboard when Render asks for them.
+services:
+  - type: web
+    name: external-system
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: APP_USER
+        value: admin
+      - key: APP_PASSWORD
+        sync: false
+      - key: CLIENT_ID
+        sync: false
+      - key: CLIENT_SECRET
+        sync: false
+      # https://<service>.onrender.com — known once the service is created.
+      - key: PUBLIC_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: REDIRECT_URI
+        sync: false
