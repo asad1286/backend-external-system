@@ -1,0 +1,11 @@
+node_modules/
+.env
+/backend/data/
+dist/
+.DS_Store
+# The old OAuth test harness (has the app's credentials in it) — kept locally only.
+/server.js
+/server.js.bak*
+/README.old-harness.md
+/package.json
+/package-lock.json

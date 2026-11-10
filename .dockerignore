@@ -1,0 +1,9 @@
+**/node_modules
+**/.env
+backend/data
+frontend/dist
+.git
+.DS_Store
+server.js
+server.js.bak*
+README.old-harness.md
