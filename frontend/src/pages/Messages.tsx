@@ -51,6 +51,7 @@ function SendAndRecent({ params }: { params: URLSearchParams }) {
   const [attachment, setAttachment] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ApiResult | null>(null);
+  const [sentBody, setSentBody] = useState<Record<string, unknown> | null>(null);
   const [list, setList] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [onlyContact, setOnlyContact] = useState(false);
@@ -58,6 +59,11 @@ function SendAndRecent({ params }: { params: URLSearchParams }) {
   const [effect, setEffect] = useState('');
   const [replyTo, setReplyTo] = useState('');
   const [openId, setOpenId] = useState<number | null>(null);
+  // The workspace's devices (GET /send-from-options); "" = Automatic. A device picks the channel.
+  const sendFromList = useApi('list-send-from-options', workspaceId ? { query: { workspace_id: workspaceId } } : null, { quiet: true });
+  const sendFromOptions: { label: string; value: string; channel: string | null }[] = Array.isArray(sendFromList.data) ? sendFromList.data : [];
+  const [sendFrom, setSendFrom] = useState('');
+  useEffect(() => setSendFrom(''), [workspaceId]);
 
   const load = useCallback(async () => {
     if (!workspaceId) return;
@@ -87,7 +93,10 @@ function SendAndRecent({ params }: { params: URLSearchParams }) {
 
   const send = async () => {
     if (!text.trim() && !attachment.trim()) return toast('Write a message or add an attachment URL.', 'error');
-    const body: Record<string, unknown> = { workspace_id: workspaceId, channel, message: text };
+    // Both optional and independent: "default" channel and Automatic Send From are left out.
+    const body: Record<string, unknown> = { workspace_id: workspaceId, message: text };
+    if (channel && channel !== 'default') body.channel = channel;
+    if (sendFrom) body.send_from = sendFrom;
     if (to === 'contact') {
       if (!contactId) return toast('Pick a contact.', 'error');
       body.contact_id = Number(contactId);
@@ -101,6 +110,7 @@ function SendAndRecent({ params }: { params: URLSearchParams }) {
     setBusy(true);
     const r = await ext('POST', '/messages', { body });
     setBusy(false);
+    setSentBody(body);
     setResult(r);
     if (!ok(r)) return toast(errorText(r), 'error');
     toast(`Sent · message #${r.data?.data?.id} (${r.data?.data?.status})`, 'ok');
@@ -131,6 +141,13 @@ function SendAndRecent({ params }: { params: URLSearchParams }) {
         ) : (
           <Field label="Phone number"><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+61412345678" /></Field>
         )}
+        <Field label="Send from" hint={sendFromList.loading ? 'Loading devices…' : `${Math.max(sendFromOptions.length - 1, 0)} devices in this workspace`}>
+          <Select value={sendFrom} onChange={(e) => setSendFrom(e.target.value)}>
+            {(sendFromOptions.length ? sendFromOptions : [{ label: 'Automatic (assigned user / default device)', value: '', channel: null }]).map((o) => (
+              <option key={o.value || 'auto'} value={o.value}>{o.channel ? `[${o.channel}] ` : ''}{o.label}</option>
+            ))}
+          </Select>
+        </Field>
         <Field label="Channel">
           <Select value={channel} onChange={(e) => setChannel(e.target.value)}>
             {CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
@@ -150,7 +167,7 @@ function SendAndRecent({ params }: { params: URLSearchParams }) {
           </Field>
         </div>
         <div className="row row-end"><Button busy={busy} onClick={send}>Send</Button></div>
-        <ResultBox result={result} />
+        <ResultBox result={result} request={sentBody ? { method: 'POST', path: '/messages', body: sentBody } : null} />
       </Card>
 
       <Card

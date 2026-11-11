@@ -285,7 +285,7 @@ function AiCalls() {
             <Notice tone={preview.data.can_call ? 'ok' : 'warn'}>
               {preview.data.can_call
                 ? <>Would use <b>{preview.data.voice_agent_name || preview.data.agent_name}</b> (matched by {preview.data.matched_by}{preview.data.tag ? `: ${preview.data.tag}` : ''}).</>
-                : 'No voice agent matches this contact — pick one below.'}
+                : <>Can't call automatically: {preview.data.reason || 'no voice agent matches this contact'}. Pick a voice agent below.</>}
             </Notice>
           ) : preview.result ? <Notice tone="error">{errorText(preview.result)}</Notice> : <div className="muted">Checking…</div>
         )}

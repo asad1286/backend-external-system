@@ -72,7 +72,8 @@ export function Json({ value, max }: { value: unknown; max?: number }) {
 }
 
 /** The raw answer of the last request, folded away. */
-export function ResultBox({ result }: { result: ApiResult | null }) {
+/** `request`: what was sent ({ method, path, body }), shown above the response. */
+export function ResultBox({ result, request }: { result: ApiResult | null; request?: { method: string; path: string; body?: unknown } | null }) {
   const [open, setOpen] = useState(false);
   if (!result) return null;
   const good = result.status >= 200 && result.status < 300 && result.data?.success !== false;
@@ -83,6 +84,12 @@ export function ResultBox({ result }: { result: ApiResult | null }) {
         <span className="result-msg">{result.data?.message || (good ? 'OK' : 'Failed')}</span>
         <span className="muted">{result.ms} ms · {open ? 'hide' : 'show'} response</span>
       </button>
+      {request && (
+        <div className="result-request">
+          <div className="muted">Request · <span className="mono">{request.method} /api/v1/ext{request.path}</span></div>
+          <Json value={request.body ?? null} max={260} />
+        </div>
+      )}
       {open && <Json value={result.data} max={360} />}
     </div>
   );

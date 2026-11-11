@@ -209,3 +209,5 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .transcript div b { text-transform: capitalize; margin-right: 6px; }
 .nav-group { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; padding: 12px 12px 4px; }
 .side { overflow-y: auto; }
+
+.result-request { padding: 8px 12px 0; display: grid; gap: 6px; }

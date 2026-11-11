@@ -1,5 +1,5 @@
 {
- "synced_at": "2026-11-10T09:27:36.167Z",
+ "synced_at": "2026-11-11T07:16:45.547Z",
  "scopes": [
   {
    "value": "workspaces.read",
@@ -3150,12 +3150,57 @@
      }
     },
     {
+     "slug": "list-send-from-options",
+     "title": "List Send From devices",
+     "method": "GET",
+     "path": "/api/v1/ext/send-from-options",
+     "summary": "The devices a workspace can send from — pass one as `send_from` on Send message.",
+     "description": "Lists the devices connected to a workspace, the same list as the **Send From** dropdown on a contact in {{dashboard}} → Conversations: its SIMs (Android/SMS), iMessage Macs, WhatsApp numbers and ready RCS devices.\n\nThe first option is always **Automatic** (`value` = `\"\"`): the workspace Message Routing and the contact's assigned user decide the device, as when `send_from` is left out.\n\nTo send from one device, take its `value` and pass it as `send_from` on [Send message](/docs/messages/send-message). The device also decides the channel — a WhatsApp device sends over WhatsApp, a SIM over SMS. `channel` tells you which before you send.\n\nValues are the device labels and can change when a device is renamed or reconnected, so read the list again rather than storing a value for long.",
+     "scope": "messages.send",
+     "authMode": "bearer",
+     "params": [
+      {
+       "name": "workspace_id",
+       "type": "number",
+       "location": "query",
+       "required": true,
+       "description": "The workspace whose devices to list. Must belong to the installer.",
+       "example": 7
+      }
+     ],
+     "requestBody": null,
+     "example": {
+      "status": 200,
+      "description": "OK — Automatic first, then the workspace's devices",
+      "body": {
+       "success": true,
+       "data": [
+        {
+         "label": "Automatic (assigned user / default device)",
+         "value": "",
+         "channel": null
+        },
+        {
+         "label": "SMS · SIM 2 · SIM 2 · +923015268400 #sm7-1",
+         "value": "SMS · SIM 2 · SIM 2 · +923015268400 #sm7-1",
+         "channel": "sms"
+        },
+        {
+         "label": "WhatsApp · WhatsApp 179160 · 923001234567 #wa12",
+         "value": "WhatsApp · WhatsApp 179160 · 923001234567 #wa12",
+         "channel": "whatsapp"
+        }
+       ]
+      }
+     }
+    },
+    {
      "slug": "send-message",
      "title": "Send message",
      "method": "POST",
      "path": "/api/v1/ext/messages",
      "summary": "Send an outbound message to a contact or a phone number, on any channel.",
-     "description": "**Before you can send:** on {{dashboard}} → Devices, add a device (Android/SMS, WhatsApp, iMessage, or RCS) and assign it to the workspace. A workspace with no assigned device for an eligible channel records the message but does not deliver it.\n\nSupply `contact_id` or `phone` (with country code, e.g. `+61` / `+1` — a contact is auto-created if none matches), plus `message` and/or `attachments` — a single media URL (attachment-only sends are valid).\n\n**iMessage to an email address:** iMessage also reaches an Apple ID email. Send it as `email`, or put the email in `phone`. An email is **iMessage only** — leave `channel` out or send `imessage` (it is sent over iMessage either way); `whatsapp` or `rcs` with an email is a 400. If no contact has that email, an email-only contact is auto-created, the same as for a new phone number. A contact that has a phone number is always messaged at the phone; an email-only contact (by `contact_id` too) is messaged at its email over iMessage.\n\nOmit `channel` (or send `default`) to use the workspace Message Routing (Primary → Fallback; same-row channels in parallel), or force one with `channel` = `whatsapp` | `imessage` | `rcs`. SMS has no direct channel value — to send over SMS, enable it in the workspace Message Routing ({{dashboard}} → Subaccount SIM → Message Routing) and send with channel `default`. The send is recorded in the conversation / Message Logs.\n\n**Status and replies, pushed to you.** Set a Callback URL on your app and myCRMSIM POSTs this message's `sent` / `delivered` / `failed` status there (`message.status`), and the contact's SMS, WhatsApp, iMessage and RCS replies (`message.inbound`) — no polling needed. See [Status and inbound message callbacks](/guides/app-callbacks) for the payloads and how to verify the signature.\n\n**Voice notes.** A voice note is an audio file sent as the `attachments` URL, on any channel except SMS: on **WhatsApp** it is delivered as an audio message, playable inline; on **iMessage** a Mac in **Advanced Mode** sends it as a real iMessage audio message (the play bubble), a Mac without it as a file the contact taps to play; on **RCS** as an audio attachment. SMS carries no audio, so name the channel (`whatsapp`, `imessage` or `rcs`) rather than `default`, which may route to SMS. `mp3`, `m4a`/`aac`, `ogg`/`opus` and `wav` work (`mp3` is the safe choice), one file up to 5 MB at a public `https://` URL that answers a HEAD request with `Content-Length` and an `audio/*` content type. `message` is optional and becomes the caption or an accompanying text. Delivery is asynchronous as for any send; replies and reactions come back as ordinary inbound messages.\n\n**Send effects (iMessage):** add `effect` to send the message with an iMessage effect — a full-screen one (`confetti`, `fireworks`, `balloons`, `hearts`, `lasers`, `shooting_star`, `sparkles`, `echo`, `spotlight`) or a bubble one (`slam`, `loud`, `gentle`, `invisible_ink`). An effect sends over iMessage (leave `channel` out or send `imessage`; another channel is a 400), needs `message` text, and needs a Mac with **Advanced Mode** on in the workspace — the same rule as the effect button on the dashboard; without one the request is a 400 `NO_ADVANCED_MODE_MAC`. In message reads the effect is the `effect` field (also on messages a contact sends with an effect). The stored text keeps the effect as its first line, `✦ Effect: confetti`, as the dashboard writes it; the recipient sees only the body.\n\n**Threaded replies (iMessage):** add `reply_to` with a message id to answer that message the way the reply button on the {{dashboard}} does. The message is sent with a leading line, `↩︎ Replying to “<the first 60 characters of that message>”` (`“an attachment”` for a photo or file), which a Mac in **Advanced Mode** turns into a real threaded reply; the contact sees only your text. Leave the recipient out and the reply goes to that message's contact. Replies are iMessage only, need `message` text, can't answer a group message or a reaction, and need a Mac with Advanced Mode on (else 400 `NO_ADVANCED_MODE_MAC`). With `effect` too, the effect line comes first. The Mac finds the target by its quoted text, so if two messages in the thread start the same way, the reply attaches to the one Messages picks.",
+     "description": "**Before you can send:** on {{dashboard}} → Devices, add a device (Android/SMS, WhatsApp, iMessage, or RCS) and assign it to the workspace. A workspace with no assigned device for an eligible channel records the message but does not deliver it.\n\nSupply `contact_id` or `phone` (with country code, e.g. `+61` / `+1` — a contact is auto-created if none matches), plus `message` and/or `attachments` — a single media URL (attachment-only sends are valid).\n\n**iMessage to an email address:** iMessage also reaches an Apple ID email. Send it as `email`, or put the email in `phone`. An email is **iMessage only** — leave `channel` out or send `imessage` (it is sent over iMessage either way); `whatsapp` or `rcs` with an email is a 400. If no contact has that email, an email-only contact is auto-created, the same as for a new phone number. A contact that has a phone number is always messaged at the phone; an email-only contact (by `contact_id` too) is messaged at its email over iMessage.\n\nOmit `channel` (or send `default`) to use the workspace Message Routing (Primary → Fallback; same-row channels in parallel), or force one with `channel` = `whatsapp` | `imessage` | `rcs`. SMS has no direct channel value — to send over SMS, enable it in the workspace Message Routing ({{dashboard}} → Subaccount SIM → Message Routing) and send with channel `default`. The send is recorded in the conversation / Message Logs.\n\n**Send from a specific device:** pass `send_from` — a `value` from [List Send From devices](/docs/messages/list-send-from-options) — and the message goes out from that device (a SIM, iMessage Mac, WhatsApp number or RCS device of the workspace), on that device's channel. Leave `channel` out (or `default`); a `channel` that is not the device's is a 400. Leave `send_from` out or empty for automatic.\n\n**Status and replies, pushed to you.** Set a Callback URL on your app and myCRMSIM POSTs this message's `sent` / `delivered` / `failed` status there (`message.status`), and the contact's SMS, WhatsApp, iMessage and RCS replies (`message.inbound`) — no polling needed. See [Status and inbound message callbacks](/guides/app-callbacks) for the payloads and how to verify the signature.\n\n**Voice notes.** A voice note is an audio file sent as the `attachments` URL, on any channel except SMS: on **WhatsApp** it is delivered as an audio message, playable inline; on **iMessage** a Mac in **Advanced Mode** sends it as a real iMessage audio message (the play bubble), a Mac without it as a file the contact taps to play; on **RCS** as an audio attachment. SMS carries no audio, so name the channel (`whatsapp`, `imessage` or `rcs`) rather than `default`, which may route to SMS. `mp3`, `m4a`/`aac`, `ogg`/`opus` and `wav` work (`mp3` is the safe choice), one file up to 5 MB at a public `https://` URL that answers a HEAD request with `Content-Length` and an `audio/*` content type. `message` is optional and becomes the caption or an accompanying text. Delivery is asynchronous as for any send; replies and reactions come back as ordinary inbound messages.\n\n**Send effects (iMessage):** add `effect` to send the message with an iMessage effect — a full-screen one (`confetti`, `fireworks`, `balloons`, `hearts`, `lasers`, `shooting_star`, `sparkles`, `echo`, `spotlight`) or a bubble one (`slam`, `loud`, `gentle`, `invisible_ink`). An effect sends over iMessage (leave `channel` out or send `imessage`; another channel is a 400), needs `message` text, and needs a Mac with **Advanced Mode** on in the workspace — the same rule as the effect button on the dashboard; without one the request is a 400 `NO_ADVANCED_MODE_MAC`. In message reads the effect is the `effect` field (also on messages a contact sends with an effect). The stored text keeps the effect as its first line, `✦ Effect: confetti`, as the dashboard writes it; the recipient sees only the body.\n\n**Threaded replies (iMessage):** add `reply_to` with a message id to answer that message the way the reply button on the {{dashboard}} does. The message is sent with a leading line, `↩︎ Replying to “<the first 60 characters of that message>”` (`“an attachment”` for a photo or file), which a Mac in **Advanced Mode** turns into a real threaded reply; the contact sees only your text. Leave the recipient out and the reply goes to that message's contact. Replies are iMessage only, need `message` text, can't answer a group message or a reaction, and need a Mac with Advanced Mode on (else 400 `NO_ADVANCED_MODE_MAC`). With `effect` too, the effect line comes first. The Mac finds the target by its quoted text, so if two messages in the thread start the same way, the reply attaches to the one Messages picks.",
      "scope": "messages.write",
      "authMode": "bearer",
      "params": [
@@ -3214,6 +3259,14 @@
        "required": false,
        "description": "Optional media as a single URL string — 1 attachment per message, file size up to 5 MB. Send with or instead of `message`; an attachment-only send is valid. An audio file (mp3, m4a, ogg, wav) is sent as a **voice note** on WhatsApp, iMessage and RCS — not SMS. Sending an array with more than one URL is rejected with a 400. (`media` is accepted as a legacy alias for this field.)",
        "example": "https://cdn.example.com/photo.jpg"
+      },
+      {
+       "name": "send_from",
+       "type": "string",
+       "location": "body",
+       "required": false,
+       "description": "Send from one device of the workspace: a `value` from [List Send From devices](/docs/messages/list-send-from-options). The device decides the channel (SMS, WhatsApp, iMessage or RCS). Omit or \"\" for automatic. Not a device of this workspace → 400 `invalid_send_from`; a `channel` other than the device's → 400 `send_from_channel_mismatch`.",
+       "example": "WhatsApp · WhatsApp 179160 · 923001234567 #wa12"
       },
       {
        "name": "effect",
